@@ -1,0 +1,97 @@
+#!/bin/sh
+DIR="/usr/local/virtpanel"
+
+start_mariadb () {
+	if [ "`ps aux | grep '[m]ysqld_safe' | wc -l`" -eq "0" ]; then
+		mysqld_safe --datadir=$DIR/conf/mariadb > /dev/null 2> /dev/stderr &
+	fi
+}
+wait_mariadb () {
+	mysql -e "exit" 2>/dev/null
+	while [ $? -ne 0 ]; do
+		mysql -e "exit" 2>/dev/null
+		sleep 1
+	done
+}
+start_redis () {
+	if [ "`ps aux | grep '[r]edis-server' | wc -l`" -eq "0" ]; then
+		redis-server > /dev/null 2> /dev/stderr &
+	fi
+}
+start_influxdb () {
+	if [ "`ps aux | grep '[i]nfluxd' | wc -l`" -eq "0" ]; then
+		influxd run > /dev/null 2> /dev/stderr &
+	fi
+}
+
+
+if [ ! -d "$DIR/conf/ssl" ]; then
+	mkdir -p $DIR/conf/ssl $DIR/conf/wetty/tokens $DIR/conf/wetty/keys $DIR/www
+	chown nginx:nginx -R $DIR
+fi
+
+if [ ! -d "$DIR/conf/redis" ]; then
+	mkdir -p $DIR/conf/redis
+	chown redis:redis -R $DIR/conf/redis
+fi
+
+if [ ! -d "$DIR/conf/influxdb" ]; then
+	mkdir -p $DIR/conf/influxdb
+	chown influxdb:influxdb -R $DIR/conf/influxdb
+fi
+
+if [ ! -f "$DIR/conf/config.php" ]; then
+	cd /usr/local/virtpanel/www
+	wget -O www.tar.gz https://update.virtpanel.com/release/www.tar.gz
+	tar xf www.tar.gz
+	rm -rf www.tar.gz
+	sed -i "s/'VP_STATS_HOST', '.*$/'VP_STATS_HOST', '$DOMAIN');/g" /usr/local/virtpanel/conf/config.php
+	sed -i "s/'VP_STATS_USE_SSL', .*$/'VP_STATS_USE_SSL', 1);/g" /usr/local/virtpanel/conf/config.php
+	chown nginx:nginx -R $DIR/www
+	chmod -R 0700 /usr/local/virtpanel
+    cp $DIR/www/scripts/config_default.php $DIR/conf/config.php
+fi
+
+if [ ! -f "$DIR/conf/ssl/default.key" ]; then
+    rm -f $DIR/conf/ssl/default.key $DIR/conf/ssl/default.crt
+    openssl req -new -x509 -days 3650 -nodes -out $DIR/conf/ssl/default.crt -keyout $DIR/conf/ssl/default.key -subj "/C=US/ST=VirtPanel/L=VirtPanel/O=VirtPanel/CN=`cat /etc/hostname`"
+	chown nginx:nginx -R $DIR/conf/ssl
+    chmod 600 $DIR/conf/ssl/*
+fi
+
+if [ ! -d "$DIR/conf/mariadb" ]; then
+	mkdir -p $DIR/conf/mariadb
+	chown -R mysql:mysql $DIR/conf/mariadb
+	mysql_install_db --user=mysql --datadir=$DIR/conf/mariadb --skip-test-db >/dev/null
+	start_mariadb
+	wait_mariadb
+	mysql -e 'CREATE DATABASE `virtpanel`'
+	mysql virtpanel < $DIR/www/scripts/virtpanel.sql
+	mysql virtpanel -e "INSERT INTO \`users\` (\`id\`, \`username\`, \`level\`, \`login_status\`) VALUES (1, 'admin', 'admin', 'Active')"
+	mysql virtpanel -e "INSERT INTO \`config\` (\`config_name\`, \`config_value\`) VALUES ('encryption_key', '`echo $TIMESTAMP $RANDOM $RANDOM $RANDOM | sha256sum | awk '{print $1}' | base64 | tr -d \\n`')"
+	mysql virtpanel -e "UPDATE \`users\` SET \`registered\` = UNIX_TIMESTAMP() WHERE \`username\` = 'admin'"
+	
+	MYSQL_PASS=""
+	mysql -e "FLUSH PRIVILEGES"
+	mysql -e "DROP USER 'virtpanel'@'localhost'" 2> /dev/null
+	mysql -e "CREATE USER 'nginx'@'localhost' IDENTIFIED WITH mysql_native_password"
+	mysql -e "GRANT ALL PRIVILEGES ON virtpanel.* TO 'nginx'@'localhost'"
+	mysql -e "FLUSH PRIVILEGES"
+	sed -i "s/'VP_DB_PASS', '.*$/'VP_DB_PASS', '$MYSQL_PASS');/g" $DIR/conf/config.php
+fi
+
+if [ ! -f "$DIR/composer.phar" ]; then
+	cd $DIR
+	wget -O composer-setup.php https://getcomposer.org/installer
+	php composer-setup.php --install-dir=.
+	rm -f composer-setup.php
+	./composer.phar require influxdb/influxdb-php
+fi
+
+php-fpm7
+start_mariadb
+wait_mariadb
+start_redis
+start_influxdb
+nginx
+bash
