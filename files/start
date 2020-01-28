@@ -1,29 +1,63 @@
-#!/bin/sh
+#!/bin/bash
 DIR="/usr/local/virtpanel"
 
-start_mariadb () {
-	if [ "`ps aux | grep '[m]ysqld_safe' | wc -l`" -eq "0" ]; then
+status() {
+    echo -e "\n\e[94mVirtPanel\e[0m> $1";
+}
+start_mariadb() {
+	if [ "`ps -eo args | grep '[m]ysqld_safe' | wc -l`" -eq "0" ]; then
+		status "Starting MariaDB"
 		mysqld_safe --datadir=$DIR/conf/mariadb > /dev/null 2> /dev/stderr &
 	fi
 }
-wait_mariadb () {
+wait_mariadb() {
 	mysql -e "exit" 2>/dev/null
 	while [ $? -ne 0 ]; do
 		mysql -e "exit" 2>/dev/null
 		sleep 1
 	done
 }
-start_redis () {
-	if [ "`ps aux | grep '[r]edis-server' | wc -l`" -eq "0" ]; then
+start_redis() {
+	if [ "`ps -eo args | grep '[r]edis-server' | wc -l`" -eq "0" ]; then
+		status "Starting Redis"
 		redis-server > /dev/null 2> /dev/stderr &
 	fi
 }
-start_influxdb () {
-	if [ "`ps aux | grep '[i]nfluxd' | wc -l`" -eq "0" ]; then
+start_influxdb() {
+	if [ "`ps -eo args | grep '[i]nfluxd' | wc -l`" -eq "0" ]; then
+		status "Starting InfluxDB"
 		influxd run > /dev/null 2> /dev/stderr &
 	fi
 }
+start_php() {
+	if [ "`ps -eo args | grep '[p]hp-fpm7' | wc -l`" -eq "0" ]; then
+		status "Starting PHP-FPM"
+		php-fpm7 > /dev/null 2> /dev/stderr &
+	fi
+}
+start_nginx() {
+	if [ "`ps -eo args | grep '[n]ginx' | wc -l`" -eq "0" ]; then
+		status "Starting NGINX"
+		nginx > /dev/null 2> /dev/stderr &
+	fi
+}
+start_taskman() {
+	if [ "`ps -eo args | grep '[c]li.php taskman' | wc -l`" -eq "0" ]; then
+		status "Starting Task Manager"
+		php -f /usr/local/virtpanel/www/cli.php taskman &
+	fi
+}
+start_stats() {
+	if [ "`ps -eo args | grep '[c]li.php stats' | wc -l`" -eq "0" ]; then
+		status "Starting Statistics Collector"
+		php -f /usr/local/virtpanel/www/cli.php stats &
+	fi
+}
 
+ctrl_c() {
+	exit 1
+}
+trap ctrl_c INT
 
 if [ ! -d "$DIR/conf/ssl" ]; then
 	mkdir -p $DIR/conf/ssl $DIR/conf/wetty/tokens $DIR/conf/wetty/keys $DIR/www
@@ -88,10 +122,17 @@ if [ ! -f "$DIR/composer.phar" ]; then
 	./composer.phar require influxdb/influxdb-php
 fi
 
-php-fpm7
-start_mariadb
-wait_mariadb
-start_redis
-start_influxdb
-nginx
-bash
+while [ 1 ]; do
+	start_php
+	start_mariadb
+	wait_mariadb
+	start_redis
+	start_influxdb
+	start_nginx
+	start_taskman
+	start_stats
+	status "Startup Complete"
+	wait -n
+	sleep 5
+done
+

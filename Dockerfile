@@ -1,12 +1,12 @@
 # docker image build -t virtpanel .
-# winpty docker run --rm -it -p 80:80 -p 443:443 -v D:\\docker\\virtpanel-app-conf:/usr/local/virtpanel virtpanel sh
+# winpty docker run --rm -it --name virtpanel -p 80:80 -p 443:443 -v D:\\docker\\virtpanel-app-conf:/usr/local/virtpanel virtpanel
 FROM alpine:latest
 
-RUN apk add --no-cache openssl certbot certbot-nginx nginx bind-tools unzip nano wget php7 php7-fpm php7-gd php7-pecl-redis php7-curl php7-gmp bc php7-pecl-igbinary php7-zip mariadb php7-phar php7-mbstring php7-openssl php7-pdo php7-pdo_mysql php7-ctype php7-posix bash redis influxdb
+RUN apk add --no-cache openssl certbot certbot-nginx nginx bind-tools unzip nano wget php7 php7-fpm php7-gd php7-pecl-redis php7-curl php7-gmp bc php7-pecl-igbinary php7-zip mariadb php7-phar php7-mbstring php7-openssl php7-pdo php7-pdo_mysql php7-ctype php7-posix php7-pcntl php7-sockets bash redis influxdb
 RUN mkdir -p /run/nginx
 
 # Install ionCube
-RUN ARCH=`uname -m`;ARCH=${ARCH//x86_64/x86-64};cd /tmp;wget -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_${ARCH}.tar.gz;tar xf ioncube_loaders.tar.gz;PHPEXTDIR=`php -i | grep extension_dir | awk '{print $3}'`;PHPINILOC=`php -i | grep "Loaded Configuration File" | awk '{print $5}'`;PHPVERSION=`php -v | head -n 1 | awk '{print $2}'`;PHPVERSION=${PHPVERSION%.*};cp ioncube/ioncube_loader_lin_$PHPVERSION.so $PHPEXTDIR;sed -i '/ioncube/d' $PHPINILOC;echo "zend_extension = $PHPEXTDIR/ioncube_loader_lin_$PHPVERSION.so" > $PHPINILOC.new;cat $PHPINILOC >> $PHPINILOC.new;rm -f $PHPINILOC;mv $PHPINILOC.new $PHPINILOC;rm -rf ioncube*
+RUN ARCH=`uname -m`;ARCH=${ARCH//x86_64/x86-64};cd /tmp;wget --progress=dot -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_${ARCH}.tar.gz;tar xf ioncube_loaders.tar.gz;PHPEXTDIR=`php -i | grep extension_dir | awk '{print $3}'`;PHPINILOC=`php -i | grep "Loaded Configuration File" | awk '{print $5}'`;PHPVERSION=`php -v | head -n 1 | awk '{print $2}'`;PHPVERSION=${PHPVERSION%.*};cp ioncube/ioncube_loader_lin_$PHPVERSION.so $PHPEXTDIR;sed -i '/ioncube/d' $PHPINILOC;echo "zend_extension = $PHPEXTDIR/ioncube_loader_lin_$PHPVERSION.so" > $PHPINILOC.new;cat $PHPINILOC >> $PHPINILOC.new;rm -f $PHPINILOC;mv $PHPINILOC.new $PHPINILOC;rm -rf ioncube*
 
 COPY files/php.ini /etc/php7/php.ini
 COPY files/nginx-conf /etc/nginx/nginx.conf
