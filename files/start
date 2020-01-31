@@ -29,6 +29,13 @@ start_influxdb() {
 		influxd run > /dev/null 2> /dev/stderr &
 	fi
 }
+wait_influxdb() {
+	influx -execute "exit" 2>/dev/null
+	while [ $? -ne 0 ]; do
+		influx -execute "exit" 2>/dev/null
+		sleep 1
+	done
+}
 start_php() {
 	if [ "`ps -eo args | grep '[p]hp-fpm7' | wc -l`" -eq "0" ]; then
 		status "Starting PHP-FPM"
@@ -72,6 +79,9 @@ fi
 if [ ! -d "$DIR/conf/influxdb" ]; then
 	mkdir -p $DIR/conf/influxdb
 	chown influxdb:influxdb -R $DIR/conf/influxdb
+	start_influxdb
+	wait_influxdb
+	influx -execute "SHOW DATABASES" 2>&1 | (grep virtpanel 2>&1 || influx -execute "CREATE DATABASE virtpanel")
 fi
 
 if [ ! -f "$DIR/conf/config.php" ]; then
