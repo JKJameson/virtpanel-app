@@ -2,7 +2,7 @@
 # winpty docker run --rm -it --name virtpanel -p 80:80 -p 443:443 -v D:\\docker\\virtpanel-app-conf:/usr/local/virtpanel virtpanel
 FROM alpine:latest
 
-RUN apk add --no-cache openssl certbot certbot-nginx nginx bind-tools unzip nano wget php7 php7-fpm php7-gd php7-pecl-redis php7-curl php7-gmp bc php7-pecl-igbinary php7-zip mariadb php7-phar php7-mbstring php7-openssl php7-pdo php7-pdo_mysql php7-ctype php7-posix php7-pcntl php7-sockets bash expect redis influxdb 
+RUN apk add --no-cache openssl certbot certbot-nginx nginx bind-tools unzip nano wget php7 php7-fpm php7-gd php7-pecl-redis php7-curl php7-gmp bc php7-pecl-igbinary php7-zip mariadb php7-phar php7-mbstring php7-openssl php7-pdo php7-pdo_mysql php7-ctype php7-posix php7-pcntl php7-sockets bash expect openssh-client openssh-keygen redis influxdb 
 RUN mkdir -p /run/nginx
 
 # Install ionCube
