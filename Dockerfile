@@ -32,7 +32,7 @@ RUN docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr
  && docker-php-ext-install -j$(nproc) sockets
  
 # Install ionCube
-RUN ARCH=`uname -m`;ARCH=${ARCH//x86_64/x86-64};cd /tmp;wget --progress=dot -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_${ARCH}.tar.gz;tar xf ioncube_loaders.tar.gz;cp ioncube/ioncube_loader_lin_7.3.so /usr/lib/php/;rm -rf ioncube*;
+RUN cd /tmp;wget --progress=dot -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz;tar xf ioncube_loaders.tar.gz;cp ioncube/ioncube_loader_lin_7.3.so /usr/lib/php/;rm -rf ioncube*
 
 COPY files/php.ini /usr/local/etc/php/
 COPY files/nginx-conf /etc/nginx/nginx.conf
