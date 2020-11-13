@@ -49,4 +49,4 @@ RUN touch /root/.bashrc;sed -i '/virtpanel/d' /root/.bashrc;echo 'alias virtpane
 #RUN nginx -t
 
 ENTRYPOINT ["/bin/bash"]
-CMD ["./start"]
+CMD ["/start"]
