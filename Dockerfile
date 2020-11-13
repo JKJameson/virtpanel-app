@@ -4,7 +4,7 @@ FROM php:7.3-fpm
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y \
-    certbot nginx bind-tools unzip nano wget bc mariadb mariadb-client bash expect openssh-client openssh-keygen redis influxdb \
+    certbot nginx dnsutils unzip nano wget bc mariadb-server mariadb-client bash expect openssh-client redis influxdb \
     libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
     libgmp-dev \
     libzip-dev libbz2-dev \
