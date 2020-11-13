@@ -1,20 +1,46 @@
 # docker image build -t virtpanel .
 # winpty docker run --rm -it --name virtpanel -p 80:80 -p 443:443 -v D:\\docker\\virtpanel-app-conf:/usr/local/virtpanel virtpanel
-FROM alpine:latest
+FROM php:7.3-fpm
 
-RUN apk add --no-cache openssl certbot certbot-nginx nginx bind-tools unzip nano wget php7 php7-fpm php7-gd php7-pecl-redis php7-curl php7-gmp bc php7-pecl-igbinary php7-zip mariadb mariadb-client php7-phar php7-mbstring php7-openssl php7-pdo php7-pdo_mysql php7-ctype php7-posix php7-pcntl php7-sockets bash expect openssh-client openssh-keygen redis influxdb 
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y \
+    certbot nginx bind-tools unzip nano wget bc mariadb mariadb-client bash expect openssh-client openssh-keygen redis influxdb \
+    libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+    libgmp-dev \
+    libzip-dev libbz2-dev \
+    libonig-dev \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
+    
+# php7-pecl-redis php7-pecl-igbinary php7-ctype
 RUN mkdir -p /run/nginx
 
+RUN docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr/include --with-freetype-dir=/usr/include \
+ && docker-php-ext-install -j$(nproc) gd \
+ && docker-php-ext-configure gmp \
+ && docker-php-ext-install -j$(nproc) gmp \
+ && docker-php-ext-configure zip \
+ && docker-php-ext-install -j$(nproc) zip \
+ && docker-php-ext-configure mbstring \
+ && docker-php-ext-install -j$(nproc) mbstring \
+ && docker-php-ext-configure pdo_mysql \
+ && docker-php-ext-install -j$(nproc) pdo_mysql \
+ && docker-php-ext-configure posix \
+ && docker-php-ext-install -j$(nproc) posix \
+ && docker-php-ext-configure pcntl \
+ && docker-php-ext-install -j$(nproc) pcntl \
+ && docker-php-ext-configure sockets \
+ && docker-php-ext-install -j$(nproc) sockets
+ 
 # Install ionCube
-RUN ARCH=`uname -m`;ARCH=${ARCH//x86_64/x86-64};cd /tmp;wget --progress=dot -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_${ARCH}.tar.gz;tar xf ioncube_loaders.tar.gz;PHPEXTDIR=`php -i | grep extension_dir | awk '{print $3}'`;PHPINILOC=`php -i | grep "Loaded Configuration File" | awk '{print $5}'`;PHPVERSION=`php -v | head -n 1 | awk '{print $2}'`;PHPVERSION=${PHPVERSION%.*};cp ioncube/ioncube_loader_lin_$PHPVERSION.so $PHPEXTDIR;sed -i '/ioncube/d' $PHPINILOC;echo "zend_extension = $PHPEXTDIR/ioncube_loader_lin_$PHPVERSION.so" > $PHPINILOC.new;cat $PHPINILOC >> $PHPINILOC.new;rm -f $PHPINILOC;mv $PHPINILOC.new $PHPINILOC;rm -rf ioncube*
+RUN ARCH=`uname -m`;ARCH=${ARCH//x86_64/x86-64};cd /tmp;wget --progress=dot -O ioncube_loaders.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_${ARCH}.tar.gz;tar xf ioncube_loaders.tar.gz;cp ioncube/ioncube_loader_lin_7.3.so /usr/lib/php/;rm -rf ioncube*;
 
-COPY files/php.ini /etc/php7/php.ini
+COPY files/php.ini /usr/local/etc/php/
 COPY files/nginx-conf /etc/nginx/nginx.conf
 COPY files/nginx-vh /etc/nginx/conf.d/default.conf
 COPY files/start /start
 RUN chmod +x /start
-COPY files/php-fpm-conf /etc/php7/php-fpm.conf
-COPY files/php-fpm-vh /etc/php7/php-fpm.d/www.conf
+COPY files/php-fpm-conf /usr/local/etc/php-fpm.conf
+COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/my.cnf /etc/my.cnf
 RUN rm -rf /etc/my.cnf.d
 COPY files/redis.conf /etc/redis.conf
