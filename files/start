@@ -39,7 +39,7 @@ wait_influxdb() {
 start_php() {
 	if [ "`ps -eo args | grep '[p]hp-fpm7' | wc -l`" -eq "0" ]; then
 		status "Starting PHP-FPM"
-		php-fpm7 > /dev/null 2> /dev/stderr &
+		php-fpm > /dev/null 2> /dev/stderr &
 	fi
 }
 start_nginx() {
