@@ -84,6 +84,11 @@ if [ ! -d "$DIR/conf/influxdb" ]; then
 	influx -execute "SHOW DATABASES" 2>&1 | (grep virtpanel 2>&1 || influx -execute "CREATE DATABASE virtpanel")
 fi
 
+if [ ! -d "$DIR/conf/tracker" ]; then
+	mkdir -p $DIR/conf/tracker
+	chown www-data:www-data -R $DIR/conf/tracker
+fi
+
 if [ ! -f "$DIR/conf/config.php" ]; then
 	cd /usr/local/virtpanel/www
 	wget -O www.tar.gz https://update.virtpanel.com/release/www.tar.gz
