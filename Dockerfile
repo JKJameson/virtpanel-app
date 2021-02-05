@@ -38,7 +38,7 @@ COPY files/php.ini /usr/local/etc/php/
 COPY files/nginx-conf /etc/nginx/nginx.conf
 COPY files/nginx-vh /etc/nginx/conf.d/default.conf
 COPY files/start /start
-RUN chmod +x /start
+RUN chmod +x /start;mkdir -p /var/run/php-fpm;chown www:www /var/run/php-fpm;rm -f /usr/local/etc/php-fpm.d/zz*
 COPY files/php-fpm-conf /usr/local/etc/php-fpm.conf
 COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/my.cnf /etc/my.cnf
