@@ -37,7 +37,7 @@ wait_influxdb() {
 	done
 }
 start_php() {
-	if [ "`ps -eo args | grep '[p]hp-fpm7' | wc -l`" -eq "0" ]; then
+	if [ "`ps -eo args | grep '[p]hp-fpm' | wc -l`" -eq "0" ]; then
 		status "Starting PHP-FPM"
 		php-fpm > /dev/null 2> /dev/stderr &
 	fi
