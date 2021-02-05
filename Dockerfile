@@ -11,13 +11,13 @@ RUN apt-get update \
     libonig-dev \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && rm -rf /var/www \
+ && mkdir -p /tmp \
  && ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock \
- && mkdir -p /var/run/php-fpm \
- && chown www:www /var/run/php-fpm \
+ && mkdir -p /run/php-fpm \
+ && chown www-data:www-data /run/php-fpm \
  && rm -f /usr/local/etc/php-fpm.d/zz*
     
-# php7-pecl-redis php7-pecl-igbinary php7-ctype
-RUN mkdir -p /run/
+# php7-pecl-igbinary php7-ctype
 
 RUN docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr/include --with-freetype-dir=/usr/include \
  && docker-php-ext-install -j$(nproc) gd \
