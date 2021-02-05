@@ -9,10 +9,11 @@ RUN apt-get update \
     libgmp-dev \
     libzip-dev libbz2-dev \
     libonig-dev \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
+ && apt-get clean && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /var/www
     
 # php7-pecl-redis php7-pecl-igbinary php7-ctype
-RUN mkdir -p /run/nginx
+RUN mkdir -p /run/
 
 RUN docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr/include --with-freetype-dir=/usr/include \
  && docker-php-ext-install -j$(nproc) gd \
