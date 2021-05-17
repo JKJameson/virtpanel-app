@@ -60,6 +60,12 @@ start_stats() {
 		php -f /usr/local/virtpanel/www/cli.php stats &
 	fi
 }
+start_websocket() {
+	if [ "`ps -eo args | grep '[c]li.php websocket' | wc -l`" -eq "0" ]; then
+		status "Starting Websocket"
+		php -f /usr/local/virtpanel/www/cli.php websocket &
+	fi
+}
 
 ctrl_c() {
 	exit 1
