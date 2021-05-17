@@ -56,7 +56,7 @@ COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/my.cnf /etc/my.cnf
 RUN rm -rf /etc/my.cnf.d
 COPY files/redis.conf /etc/redis.conf
-COPY files/influxdb.conf /etc/influxdb.conf
+COPY files/influxdb.conf /etc/influxdb/influxdb.conf
 RUN touch /root/.bashrc;sed -i '/virtpanel/d' /root/.bashrc;echo 'alias virtpanel="php /usr/local/virtpanel/www/cli.php"' >> /root/.bashrc
 #RUN nginx -t
 
