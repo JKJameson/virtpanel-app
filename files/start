@@ -161,6 +161,7 @@ while [ 1 ]; do
 	start_nginx
 	start_taskman
 	start_stats
+	start_websocket
 	status "Startup Complete"
 	wait -n
 	sleep 5
