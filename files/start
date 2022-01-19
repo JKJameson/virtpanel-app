@@ -7,6 +7,7 @@ status() {
 start_mariadb() {
 	if [ "`ps -eo args | grep '[m]ysqld_safe' | wc -l`" -eq "0" ]; then
 		status "Starting MariaDB"
+		chown -R mysql:mysql /usr/local/virtpanel/conf/mariadb
 		mysqld_safe --datadir=$DIR/conf/mariadb > /dev/null 2> /dev/stderr &
 	fi
 }
@@ -16,7 +17,6 @@ wait_mariadb() {
 		mysql -e "exit" 2>/dev/null
 		sleep 1
 	done
-	mysqlcheck -u root -p --auto-repair --check --all-databases
 }
 start_redis() {
 	if [ "`ps -eo args | grep '[r]edis-server' | wc -l`" -eq "0" ]; then
@@ -27,20 +27,20 @@ start_redis() {
 start_influxdb() {
 	if [ "`ps -eo args | grep '[i]nfluxd' | wc -l`" -eq "0" ]; then
 		status "Starting InfluxDB"
-		influxd run > /dev/null 2> /dev/stderr &
+		influxd run -config /etc/influxdb.conf > /dev/null 2> /dev/stderr &
 	fi
 }
 wait_influxdb() {
 	influx -execute "exit" 2>/dev/null
 	while [ $? -ne 0 ]; do
-		sleep 1
 		influx -execute "exit" 2>/dev/null
+		sleep 1
 	done
 }
 start_php() {
-	if [ "`ps -eo args | grep '[p]hp-fpm' | wc -l`" -eq "0" ]; then
+	if [ "`ps -eo args | grep '[p]hp-fpm7' | wc -l`" -eq "0" ]; then
 		status "Starting PHP-FPM"
-		php-fpm > /dev/null 2> /dev/stderr &
+		php-fpm7 > /dev/null 2> /dev/stderr &
 	fi
 }
 start_nginx() {
@@ -61,21 +61,17 @@ start_stats() {
 		php -f /usr/local/virtpanel/www/cli.php stats &
 	fi
 }
-start_websocket() {
-	if [ "`ps -eo args | grep '[c]li.php websocket' | wc -l`" -eq "0" ]; then
-		status "Starting Websocket"
-		php -f /usr/local/virtpanel/www/cli.php websocket &
-	fi
-}
 
 ctrl_c() {
 	exit 1
 }
 trap ctrl_c INT
 
+chown nginx:nginx -R $DIR
+chmod 0755 $DIR
+
 if [ ! -d "$DIR/conf/ssl" ]; then
-	mkdir -p $DIR/conf/ssl $DIR/conf/wetty/tokens $DIR/conf/wetty/keys $DIR/www
-	chown nginx:nginx -R $DIR
+	mkdir -p $DIR/conf/ssl $DIR/conf/tracker $DIR/conf/wetty/tokens $DIR/conf/wetty/keys $DIR/www
 fi
 
 if [ ! -d "$DIR/conf/redis" ]; then
@@ -84,45 +80,32 @@ if [ ! -d "$DIR/conf/redis" ]; then
 fi
 
 if [ ! -d "$DIR/conf/influxdb" ]; then
-	mkdir -p $DIR/conf/influxdb
+	mkdir -p $DIR/conf/influxdb/data $DIR/conf/influxdb/wal $DIR/conf/influxdb/meta
 	chown influxdb:influxdb -R $DIR/conf/influxdb
 	start_influxdb
 	wait_influxdb
 	influx -execute "SHOW DATABASES" 2>&1 | (grep virtpanel 2>&1 || influx -execute "CREATE DATABASE virtpanel")
 fi
 
-if [ ! -d "$DIR/conf/tracker" ]; then
-	mkdir -p $DIR/conf/tracker
-	chown www-data:www-data -R $DIR/conf/tracker
-fi
-
 if [ ! -f "$DIR/conf/config.php" ]; then
-	cd /usr/local/virtpanel/www
+	cd $DIR/www
 	wget -O www.tar.gz https://update.virtpanel.com/release/www.tar.gz
 	tar xf www.tar.gz
 	rm -rf www.tar.gz
-	sed -i "s/'VP_STATS_HOST', '.*$/'VP_STATS_HOST', '$DOMAIN');/g" /usr/local/virtpanel/conf/config.php
-	sed -i "s/'VP_STATS_USE_SSL', .*$/'VP_STATS_USE_SSL', 1);/g" /usr/local/virtpanel/conf/config.php
+	sed -i "s/'VP_STATS_HOST', '.*$/'VP_STATS_HOST', '$DOMAIN');/g" $DIR/conf/config.php
+	sed -i "s/'VP_STATS_USE_SSL', .*$/'VP_STATS_USE_SSL', 1);/g" $DIR/conf/config.php
 	chown nginx:nginx -R $DIR/www
-	chmod -R 0700 /usr/local/virtpanel
     cp $DIR/www/scripts/config_default.php $DIR/conf/config.php
+	chown nginx:nginx $DIR/conf/config.php
+	chmod -R 0700 $DIR/conf/config.php
 fi
 
-SSLNAME="default"
 if [ ! -f "$DIR/conf/ssl/default.key" ]; then
     rm -f $DIR/conf/ssl/default.key $DIR/conf/ssl/default.crt
     openssl req -new -x509 -days 3650 -nodes -out $DIR/conf/ssl/default.crt -keyout $DIR/conf/ssl/default.key -subj "/C=US/ST=VirtPanel/L=VirtPanel/O=VirtPanel/CN=`cat /etc/hostname`"
 	chown nginx:nginx -R $DIR/conf/ssl
     chmod 600 $DIR/conf/ssl/*
 fi
-
-if [ -f "$DIR/conf/ssl/custom.key" ]; then
-    SSLNAME="custom"
-    chmod 600 $DIR/conf/ssl/custom.crt $DIR/conf/ssl/custom.key
-fi
-
-sed -i -E "s/ssl_certificate (.*)\/(.*)\.crt;/ssl_certificate \\1\/$SSLNAME.crt;/g" /etc/nginx/conf.d/default.conf
-sed -i -E "s/ssl_certificate_key (.*)\/(.*)\.key;/ssl_certificate_key \\1\/$SSLNAME.key;/g" /etc/nginx/conf.d/default.conf
 
 if [ ! -d "$DIR/conf/mariadb" ]; then
 	mkdir -p $DIR/conf/mariadb
@@ -136,11 +119,11 @@ if [ ! -d "$DIR/conf/mariadb" ]; then
 	mysql virtpanel -e "INSERT INTO \`config\` (\`config_name\`, \`config_value\`) VALUES ('encryption_key', '`echo $TIMESTAMP $RANDOM $RANDOM $RANDOM | sha256sum | awk '{print $1}' | base64 | tr -d \\n`')"
 	mysql virtpanel -e "UPDATE \`users\` SET \`registered\` = UNIX_TIMESTAMP() WHERE \`username\` = 'admin'"
 	
-	MYSQL_PASS=""
+	MYSQL_PASS="$(date | md5sum | awk '{print $1}')"
 	mysql -e "FLUSH PRIVILEGES"
 	mysql -e "DROP USER 'virtpanel'@'localhost'" 2> /dev/null
-	mysql -e "CREATE USER 'nginx'@'localhost' IDENTIFIED WITH mysql_native_password"
-	mysql -e "GRANT ALL PRIVILEGES ON virtpanel.* TO 'nginx'@'localhost'"
+	mysql -e "CREATE USER 'virtpanel'@'localhost' IDENTIFIED BY '$MYSQL_PASS'"
+	mysql -e "GRANT ALL PRIVILEGES ON virtpanel.* TO 'virtpanel'@'localhost'"
 	mysql -e "FLUSH PRIVILEGES"
 	sed -i "s/'VP_DB_PASS', '.*$/'VP_DB_PASS', '$MYSQL_PASS');/g" $DIR/conf/config.php
 fi
@@ -162,7 +145,6 @@ while [ 1 ]; do
 	start_nginx
 	start_taskman
 	start_stats
-	start_websocket
 	status "Startup Complete"
 	wait -n
 	sleep 5
