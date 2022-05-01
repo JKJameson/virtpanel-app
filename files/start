@@ -17,6 +17,7 @@ wait_mariadb() {
 		mysql -e "exit" 2>/dev/null
 		sleep 1
 	done
+	mysqlcheck -A --auto-repair
 }
 start_redis() {
 	if [ "`ps -eo args | grep '[r]edis-server' | wc -l`" -eq "0" ]; then
