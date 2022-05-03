@@ -11,6 +11,7 @@ RUN apt-get update \
     libonig-dev \
     transmission-cli \
     git \
+    sudo \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && rm -rf /var/www \
  && mkdir -p /tmp \
@@ -50,6 +51,7 @@ COPY files/nginx-conf /etc/nginx/nginx.conf
 COPY files/nginx-vh /etc/nginx/conf.d/default.conf
 COPY files/start /start
 RUN chmod +x /start
+COPY files/sudoers /etc/sudoers
 COPY files/php-fpm-conf /usr/local/etc/php-fpm.conf
 COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/my.cnf /etc/my.cnf
