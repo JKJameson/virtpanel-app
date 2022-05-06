@@ -105,8 +105,10 @@ if [ ! -f "$DIR/conf/ssl/default.key" ]; then
     rm -f $DIR/conf/ssl/default.key $DIR/conf/ssl/default.crt
     openssl req -new -x509 -days 3650 -nodes -out $DIR/conf/ssl/default.crt -keyout $DIR/conf/ssl/default.key -subj "/C=US/ST=VirtPanel/L=VirtPanel/O=VirtPanel/CN=`cat /etc/hostname`"
 	chown nginx:nginx -R $DIR/conf/ssl
-    chmod 600 $DIR/conf/ssl/*
 fi
+
+ chmod -R 600 $DIR/conf/ssl
+ chown -R www-data:www-data $DIR/conf/ssl
 
 if [ ! -d "$DIR/conf/mariadb" ]; then
 	mkdir -p $DIR/conf/mariadb
