@@ -4,7 +4,7 @@ FROM php:7.3-fpm
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y \
-    certbot nginx dnsutils unzip nano procps wget bc mariadb-server mariadb-client bash expect openssh-client redis influxdb influxdb-client \
+    certbot nginx dnsutils unzip nano procps wget bc mariadb-server mariadb-client bash expect openssh-client redis \
     libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
     libgmp-dev \
     libzip-dev libbz2-dev \
@@ -57,7 +57,6 @@ COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/my.cnf /etc/my.cnf
 RUN rm -rf /etc/my.cnf.d
 COPY files/redis.conf /etc/redis.conf
-COPY files/influxdb.conf /etc/influxdb/influxdb.conf
 RUN touch /root/.bashrc;sed -i '/virtpanel/d' /root/.bashrc;echo 'alias virtpanel="php /usr/local/virtpanel/www/cli.php"' >> /root/.bashrc
 #RUN nginx -t
 
