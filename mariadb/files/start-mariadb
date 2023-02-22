@@ -1,0 +1,28 @@
+#!/bin/bash
+
+DIR="/var/lib/mysql"
+
+wait_mariadb() {
+  mysql -e "exit" 2>/dev/null
+  while [ $? -ne 0 ]; do
+    mysql -e "exit" 2>/dev/null
+    sleep 1
+  done
+}
+
+pid=""
+chown -R mysql:mysql $DIR
+if [[ "$(find $DIR | wc -l)" -lt "2" ]]; then
+  mysql_install_db --user=mysql --datadir=$DIR --skip-test-db >/dev/null
+  chown -R mysql:mysql $DIR
+
+  mysqld_safe --datadir=$DIR > /dev/null 2> /dev/stderr &
+  pid=$!
+
+  wait_mariadb
+else
+  mysqld_safe --datadir=$DIR > /dev/null 2> /dev/stderr &
+  pid=$!
+fi
+
+wait $pid

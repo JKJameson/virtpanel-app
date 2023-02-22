@@ -1,0 +1,56 @@
+version: '3.7'
+
+services:
+  app:
+    image: virtpanel/app:latest
+    networks:
+      - virtpanel-internal
+    volumes:
+      - type: bind
+        source: /usr/local/virtpanel
+        target: /usr/local/virtpanel
+    ports:
+#      - target: 80
+#        published: 80
+#        protocol: tcp
+#        mode: host
+#      - target: 443
+#        published: 443
+#        protocol: tcp
+#        mode: host
+      - target: 443
+        published: 8443
+        protocol: tcp
+        mode: host
+
+  mariadb:
+    image: virtpanel/mariadb:latest
+    networks:
+      - virtpanel-internal
+    volumes:
+      - type: bind
+        source: /usr/local/virtpanel/conf/mariadb2
+        target: /var/lib/mysql
+
+  redis:
+    image: virtpanel/redis:latest
+    networks:
+      - virtpanel-internal
+    volumes:
+      - type: bind
+        source: /usr/local/virtpanel/conf/redis2
+        target: /var/lib/redis
+
+  tty:
+    image: virtpanel/tty:latest
+    networks:
+      - virtpanel-internal
+    volumes:
+      - type: bind
+        source: /usr/local/virtpanel/conf/tty
+        target: /wetty-config
+
+networks:
+  virtpanel-internal:
+    driver: bridge
+    external: false

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+DIR="/usr/local/virtpanel"
+
+chmod 0755 $DIR
+
+if [ ! -d "$DIR/conf/ssl" ]; then
+  mkdir -p $DIR/conf/ssl $DIR/conf/tracker $DIR/conf/wetty/tokens $DIR/conf/wetty/keys $DIR/www
+fi
+
+if [ ! -f "$DIR/conf/letsencrypt/conf/live/templates.virtpanel.com/fullchain.pem" ]; then
+  rm -f /etc/nginx/conf.d/templates.conf
+fi
+
+if [ ! -f "$DIR/conf/config.php" ]; then
+  cd $DIR/www
+  wget -O www.tar.gz https://update.virtpanel.com/release/www.tar.gz
+  tar xf www.tar.gz
+  rm -rf www.tar.gz
+  sed -i "s/'VP_STATS_HOST', '.*$/'VP_STATS_HOST', '$DOMAIN');/g" $DIR/conf/config.php
+  sed -i "s/'VP_STATS_USE_SSL', .*$/'VP_STATS_USE_SSL', 1);/g" $DIR/conf/config.php
+  chown nginx:nginx -R $DIR/www
+  cp $DIR/www/scripts/config_default.php $DIR/conf/config.php
+  chown nginx:nginx $DIR/conf/config.php
+  chmod -R 0700 $DIR/conf/config.php
+fi
+
+if [ ! -f "$DIR/conf/ssl/default.key" ]; then
+  rm -f $DIR/conf/ssl/default.key $DIR/conf/ssl/default.crt
+  openssl req -new -x509 -days 3650 -nodes -out $DIR/conf/ssl/default.crt -keyout $DIR/conf/ssl/default.key -subj "/C=US/ST=VirtPanel/L=VirtPanel/O=VirtPanel/CN=`cat /etc/hostname`"
+  chown nginx:nginx -R $DIR/conf/ssl
+  chmod 600 $DIR/conf/ssl/*
+fi
+
+if [ ! -f "$DIR/composer.phar" ]; then
+  cd $DIR
+  wget -O composer-setup.php https://getcomposer.org/installer
+  php composer-setup.php --install-dir=.
+  rm -f composer-setup.php
+  ./composer.phar require influxdb/influxdb-php
+fi
+
+exit 0
