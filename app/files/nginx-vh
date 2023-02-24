@@ -8,6 +8,9 @@ server {
   ssl_certificate /usr/local/virtpanel/conf/ssl/default.crt;
   ssl_certificate_key /usr/local/virtpanel/conf/ssl/default.key;
 
+  access_log off;
+  error_log /dev/stderr warn;
+
   root /usr/local/virtpanel/www;
 
   index index.php index.html index.htm;
@@ -55,18 +58,17 @@ server {
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     fastcgi_param SCRIPT_NAME $fastcgi_script_name;
     fastcgi_pass unix:/var/run/php-fpm/www.sock;
-    access_log off;
   }
 
   location ~ /\.ht {
     deny all;
   }
 	
-  location /wetty {
+  location /tty {
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header Host $host;
     proxy_set_header Connection "";
-    proxy_pass http://tty:80;
+    proxy_pass http://tty:3000;
   }
 	
   location /stats {

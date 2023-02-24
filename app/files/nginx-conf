@@ -1,4 +1,4 @@
-user www-data;
+#user virtpanel;
 
 # Set number of worker processes automatically based on number of CPU cores.
 worker_processes auto;
@@ -8,11 +8,11 @@ pcre_jit on;
 
 daemon off;
 
-# Configures default error logger.
-error_log /dev/stderr warn;
-
 # Includes files with directives to load dynamic modules.
 include /etc/nginx/modules/*.conf;
+
+# Configures default error logger.
+error_log /dev/stderr warn;
 
 events {
   # The maximum number of simultaneous connections that can be opened by

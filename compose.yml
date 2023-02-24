@@ -44,7 +44,7 @@ services:
     volumes:
       - type: bind
         source: /usr/local/virtpanel/conf/tty
-        target: /wetty-config
+        target: /tty-config
 
 networks:
   internal:

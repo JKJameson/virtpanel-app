@@ -2,6 +2,8 @@
 # winpty docker run --rm -it --name virtpanel -p 80:80 -p 443:443 -v D:\\docker\\virtpanel-app-conf:/usr/local/virtpanel virtpanel
 FROM php:8.1-fpm
 
+RUN useradd --system --shell /bin/bash --home /usr/local/virtpanel --create-home virtpanel
+
 RUN apt-get update \
  && apt-get install --no-install-recommends -y \
     certbot nginx dnsutils unzip nano procps wget bc mariadb-client bash expect openssh-client supervisor \
@@ -58,7 +60,9 @@ COPY files/sudoers /etc/sudoers
 COPY files/php-fpm-conf /usr/local/etc/php-fpm.conf
 COPY files/php-fpm-vh /usr/local/etc/php-fpm.d/www.conf
 COPY files/supervisord.conf /etc/supervisord.conf
-RUN touch /root/.bashrc;sed -i '/virtpanel/d' /root/.bashrc;echo 'alias virtpanel="php /usr/local/virtpanel/www/cli.php"' >> /root/.bashrc
+RUN chown -R virtpanel:virtpanel /var/run/php-fpm /var/lib/nginx /run
+#RUN touch /usr/local/virtpanel/.bashrc;sed -i '/virtpanel/d' /usr/local/virtpanel/.bashrc;echo 'alias virtpanel="php /usr/local/virtpanel/www/cli.php"' >> /usr/local/virtpanel/.bashrc;chown virtpane
 #RUN nginx -t
+USER virtpanel
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
